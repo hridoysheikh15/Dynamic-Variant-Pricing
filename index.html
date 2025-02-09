@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dynamic Variant</title>
+</head>
+<body>
+    <button onclick="add_variant()">Add Variant</button>
+
+<form action="#" onsubmit="make_price_box(event)" id="add_variant" style="display: none;">
+    <label for="variant_name">Variant Name:</label>
+    <input style="margin-bottom: 8px" type="text" id="variant_name" name="variant_name" required> 
+    <br>
+    <label for="variant_type">Variant Type:</label>
+    <select style="margin-bottom: 8px" name="variant_type" id="variant_type">
+        <option selected disabled>Please Select One</option>
+        <option value="color">Color</option>
+        <option value="size">Size</option>
+    </select>
+    <br>
+    <div id="variant_wrapper" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px">
+        <div class="variant-box">
+            <label for="variant1">Variant:</label>
+            <input type="text" id="variant1" name="variants[]" required>
+        </div>
+    </div>
+    <button type="button" onclick="add_more_variant()">+</button>
+    <br>
+    <input type="submit" value="Submit">
+</form>
+
+<table border="1" width="100%">
+    <caption><b>Variant List</b></caption>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Variants</th>
+            <th>Remove</th>
+        </tr>
+    </thead>
+    <tbody id="variant_list"></tbody>
+</table>
+
+<form action="#" id="variant_price"></form>
+
+<script>
+    let variantData = []; // Stores added variants globally
+
+    function add_variant() {
+        let variantForm = document.getElementById("add_variant");
+        variantForm.style.display = (variantForm.style.display === 'none' || variantForm.style.display === '') ? 'block' : 'none';
+    }
+
+    function add_more_variant() {
+        let variantWrapper = document.getElementById("variant_wrapper");
+        let count = variantWrapper.children.length + 1;
+
+        let newVariant = document.createElement("div");
+        newVariant.classList.add("variant-box");
+        newVariant.innerHTML = `
+            <label for="variant${count}">Variant:</label>
+            <input type="text" id="variant${count}" name="variants[]" required>
+            <button type="button" onclick="remove_variant(this)">-</button>
+        `;
+
+        variantWrapper.appendChild(newVariant);
+    }
+
+    function remove_variant(button) {
+        let variantWrapper = document.getElementById("variant_wrapper");
+
+        if (variantWrapper.children.length > 1) {
+            button.parentElement.remove();
+        } else {
+            alert("At least one variant is required.");
+        }
+    }
+
+    function make_price_box(event) {
+        event.preventDefault();
+
+        let formData = new FormData(document.getElementById("add_variant"));
+        let variantName = formData.get("variant_name");
+        let variantType = formData.get("variant_type");
+        let variantList = formData.getAll("variants[]");
+
+        // Store variant data for price calculations
+        variantData.push({ name: variantName, type: variantType, variants: variantList });
+
+        // Update the variant table
+        update_variant_table();
+
+        // Update the price input form
+        update_price_inputs();
+
+        // Hide the form after submission
+        add_variant();
+        document.getElementById("add_variant").reset();
+    }
+
+    function update_variant_table() {
+        let tableBody = document.getElementById("variant_list");
+        tableBody.innerHTML = ""; // Clear table before updating
+
+        variantData.forEach((data, index) => {
+            let row = `
+                <tr>
+                    <td>${data.name}</td>
+                    <td>${data.type}</td>
+                    <td>${data.variants.join(", ")}</td>
+                    <td><button type="button" onclick="remove_variant_row(${index})">Remove</button></td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    function remove_variant_row(index) {
+        variantData.splice(index, 1); // Remove from stored data
+        update_variant_table();
+        update_price_inputs(); // Update prices after removal
+    }
+
+    function update_price_inputs() {
+        let priceContainer = document.getElementById("variant_price");
+        priceContainer.innerHTML = "<h3>Set Variant Prices</h3>";
+
+        if (variantData.length === 0) return;
+
+        // Generate all combinations of variants
+        let combinations = generate_combinations(variantData.map(v => v.variants));
+
+        combinations.forEach(combination => {
+            priceContainer.innerHTML += `
+                <div>${combination.join(" + ")}: <input type="number" name="${combination.join("_")}" required></div>
+            `;
+        });
+
+        priceContainer.innerHTML += `<button type="button" onclick="calculate_price()">Calculate Price</button>`;
+    }
+
+    function generate_combinations(arrays, prefix = []) {
+        if (!arrays.length) return [prefix];
+        let result = [];
+        arrays[0].forEach(value => {
+            result = result.concat(generate_combinations(arrays.slice(1), [...prefix, value]));
+        });
+        return result;
+    }
+
+    function calculate_price() {
+        alert("Price calculation function triggered!");
+    }
+</script>
+
+</body>
+</html>
